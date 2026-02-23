@@ -1,0 +1,12 @@
+*.pyc
+__pycache__/
+.pytest_cache
+
+ctre_sim/
+logs/
+venv/
+
+networktables.json
+simgui-ds.json
+simgui-window.json
+simgui.json
