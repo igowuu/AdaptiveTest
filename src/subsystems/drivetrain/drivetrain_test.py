@@ -112,7 +112,6 @@ class TestDrivetrain:
 
         first_output = self.io.get_left_voltage()
 
-        # Simulate robot speeding up
         self.io.left_velocity = 2.0
         self.io.right_velocity = 2.0
 

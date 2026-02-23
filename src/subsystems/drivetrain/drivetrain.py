@@ -11,11 +11,11 @@ from wpimath.filter import SlewRateLimiter
 from adaptive_robot.adaptive_robot import AdaptiveRobot
 from adaptive_robot.adaptive_component import AdaptiveComponent
 from adaptive_robot.requests import AxisController
+from adaptive_robot.utils.math_utils import clamp
 
 from subsystems.drivetrain.drivetrain_io import DrivetrainIO
 
 from utils.priorities import DrivetrainPriority
-from utils.math_utils import clamp
 
 from config.constants import RobotConst, DrivetrainConst, DrivetrainFF, DrivetrainPID
 
@@ -230,6 +230,12 @@ class Drivetrain(AdaptiveComponent):
         self.publish_value("Drive/DriveAxis/ResolvedYaw (percent)", resolved_angular.value)
         self.publish_value("Drive/DriveAxis/RotationMode", resolved_angular.source)
         self.publish_value("Drive/DriveAxis/RotationPriority", resolved_angular.priority)
+    
+    def on_faulted(self) -> None:
+        """
+        Method called automatically by the scheduler each iteration if drivetrain is unhealthy.
+        """
+        self.request_drivetrain_stop(DrivetrainPriority.SAFETY, "safety")
 
     def execute(self) -> None:
         """
@@ -257,8 +263,5 @@ class Drivetrain(AdaptiveComponent):
             leftDistance=self.io.get_left_distance(), 
             rightDistance=self.io.get_right_distance()
         )
-
-        self.linear_percent_controller.clear()
-        self.angular_percent_controller.clear()
 
         self.field.setRobotPose(self.get_pose())

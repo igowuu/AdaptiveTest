@@ -80,6 +80,7 @@ class AxisController:
     def resolve(self) -> AxisRequest:
         """
         Returns the request with the highest priority within the AxisController object.
+        If requests have the same highest priority, returns the most recent request.
         """
         if not self._enabled:
             self._last_request = self._default

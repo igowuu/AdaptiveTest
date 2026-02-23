@@ -46,9 +46,15 @@ class AdaptiveRobot(TimedRobot):
                 component.record_safety_telemetry()
                 component.publish_telemetry()
 
+                if not self.isEnabled():
+                    continue
+
                 if component.is_healthy():
                     component.execute()
                     component.reset_failure_count()
+                else:
+                    component.on_faulted()
+
             except Exception as e:
                 component.record_failure(e)
 

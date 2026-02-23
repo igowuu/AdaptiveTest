@@ -151,6 +151,12 @@ class AdaptiveComponent(ABC):
         :param value: The value you wish to save publish to NetworkTables.
         """
         self._robot.telemetry_publisher.put_value(directory, value)
+    
+    def on_faulted(self) -> None:
+        """
+        Method that is called each iteration if the component is no longer healthy.
+        """
+        ...
 
     def publish_telemetry(self) -> None:
         """

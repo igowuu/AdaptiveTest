@@ -10,8 +10,7 @@ from wpimath.geometry import Rotation2d, Pose2d
 from wpimath.system.plant import DCMotor
 
 from adaptive_robot.hardware.adaptive_dutycycle_encoder import AdaptiveDutyCycleEncoder
-
-from utils.math_utils import rotations_to_meters, rps_to_mps
+from adaptive_robot.utils.math_utils import rotations_to_meters, rps_to_mps
 
 from config.constants import RobotConst, DrivetrainConst
 
@@ -212,6 +211,9 @@ class SimDrivetrainIO(DrivetrainIO):
         self.left_volts = 0.0
         self.right_volts = 0.0
 
+        self.left_position_offset = 0.0
+        self.right_position_offset = 0.0
+
         self.diff_sim = DifferentialDrivetrainSim(
             driveMotor=DCMotor.NEO(2),
             gearing=DrivetrainConst.GEAR_RATIO,
@@ -228,10 +230,10 @@ class SimDrivetrainIO(DrivetrainIO):
         return self.right_volts
     
     def get_left_distance(self) -> meters:
-        return self.diff_sim.getLeftPosition()
+        return self.diff_sim.getLeftPosition() + self.left_position_offset
     
     def get_right_distance(self) -> meters:
-        return self.diff_sim.getRightPosition()
+        return self.diff_sim.getRightPosition() + self.right_position_offset
     
     def get_left_velocity(self) -> meters_per_second:
         return self.diff_sim.getLeftVelocity()
@@ -249,10 +251,10 @@ class SimDrivetrainIO(DrivetrainIO):
         self.right_volts = volts
 
     def set_left_position(self, position: float) -> None:
-        pass
+        self._left_position_offset = position - self.diff_sim.getLeftPosition()
 
     def set_right_position(self, position: float) -> None:
-        pass
+        self._right_position_offset = position - self.diff_sim.getRightPosition()
 
     def reset_gyro(self) -> None:
         pose = self.diff_sim.getPose()
