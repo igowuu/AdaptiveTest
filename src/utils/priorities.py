@@ -11,3 +11,10 @@ class DrivetrainPriority(Enum):
     TELEOP = 2
     SYSID = 1
     TEST = 0
+
+class ArmPriority(Enum):
+    SAFETY = 4
+    AUTO = 3
+    TELEOP = 2
+    SYSID = 1
+    TEST = 0

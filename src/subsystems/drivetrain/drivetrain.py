@@ -235,7 +235,8 @@ class Drivetrain(AdaptiveComponent):
         """
         Method called automatically by the scheduler each iteration if drivetrain is unhealthy.
         """
-        self.request_drivetrain_stop(DrivetrainPriority.SAFETY, "safety")
+        self.io.command_left_voltage(0.0)
+        self.io.command_right_voltage(0.0)
 
     def execute(self) -> None:
         """
