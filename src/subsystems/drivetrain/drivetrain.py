@@ -69,7 +69,7 @@ class Drivetrain(AdaptiveComponent):
         self.linear_percent_controller = AxisController()
         self.angular_percent_controller = AxisController()
 
-        self.drive_mode = DriveMode.CLOSED_LOOP
+        self.drive_mode = DriveMode.OPEN_LOOP
 
         self.field = Field2d()
         SmartDashboard.putData("Field", self.field)
@@ -192,14 +192,11 @@ class Drivetrain(AdaptiveComponent):
         clamped_left_volts = clamp(left_volts, -RobotConst.NOMINAL_VOLTAGE, RobotConst.NOMINAL_VOLTAGE)
         clamped_right_volts = clamp(right_volts, -RobotConst.NOMINAL_VOLTAGE, RobotConst.NOMINAL_VOLTAGE)
 
-        desired_left_volts = self.left_voltage_slew.calculate(clamped_left_volts)
-        desired_right_volts = self.right_voltage_slew.calculate(clamped_right_volts)
-
         self.previous_left_velocity = desired_left_velocity
         self.previous_right_velocity = desired_right_velocity
 
-        self.io.command_left_voltage(desired_left_volts)
-        self.io.command_right_voltage(desired_right_volts)
+        self.io.command_left_voltage(clamped_left_volts)
+        self.io.command_right_voltage(clamped_right_volts)
 
     def publish_telemetry(self) -> None:
         """

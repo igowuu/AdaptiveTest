@@ -5,15 +5,15 @@ class AdaptiveDutyCycleEncoder(DutyCycleEncoder):
     """
     Wrapper for a wpilib DutyCycleEncoder to allow for higher-level control.
     """
-    def __init__(self, channel: int) -> None:
+    def __init__(self, channel: int, full_range: float = 1.0, expected_zero: float = 0.0) -> None:
         """
         Construct a new DutyCycleEncoder on a specific channel.
-
-        This has a fullRange of 1 and an expectedZero of 0.
         
-        :param channel: the RIO port to attach to.
+        :param channel: The RIO port to attach to.
+        :param full_range: The value to report at maximum travel.
+        :param expected_zero: The reading that you would expect to get a value of 0.0.
         """
-        super().__init__(channel)
+        super().__init__(channel, full_range, expected_zero)
 
         self.offset = 0.0
 

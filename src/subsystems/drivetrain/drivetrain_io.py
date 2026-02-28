@@ -117,10 +117,10 @@ class RealDrivetrainIO(DrivetrainIO):
     Contains all setters and getters for the actual hardware of the bot.
     """
     def __init__(self) -> None:
-        self.front_left_motor = TalonSRX(20)
-        self.front_right_motor = TalonSRX(21)
-        self.back_left_motor = TalonSRX(22)
-        self.back_right_motor = TalonSRX(23)
+        self.front_left_motor = TalonSRX(1)
+        self.front_right_motor = TalonSRX(2)
+        self.back_left_motor = TalonSRX(3)
+        self.back_right_motor = TalonSRX(4)
 
         self.left_encoder = AdaptiveDutyCycleEncoder(0)
         self.right_encoder = AdaptiveDutyCycleEncoder(1)
@@ -251,10 +251,10 @@ class SimDrivetrainIO(DrivetrainIO):
         self.right_volts = volts
 
     def set_left_position(self, position: float) -> None:
-        self._left_position_offset = position - self.diff_sim.getLeftPosition()
+        self.left_position_offset = position - self.diff_sim.getLeftPosition()
 
     def set_right_position(self, position: float) -> None:
-        self._right_position_offset = position - self.diff_sim.getRightPosition()
+        self.right_position_offset = position - self.diff_sim.getRightPosition()
 
     def reset_gyro(self) -> None:
         pose = self.diff_sim.getPose()

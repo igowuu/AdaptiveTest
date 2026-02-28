@@ -2,7 +2,10 @@ from abc import ABC, abstractmethod
 
 from phoenix5 import TalonSRX, TalonSRXControlMode
 
+from wpilib.simulation import SingleJointedArmSim
+
 from wpimath.units import radians, radians_per_second, volts
+from wpimath.system.plant import DCMotor
 
 from adaptive_robot.hardware.adaptive_dutycycle_encoder import AdaptiveDutyCycleEncoder
 from adaptive_robot.utils.math_utils import rotations_to_radians, rps_to_radps
@@ -53,8 +56,8 @@ class ArmIO(ABC):
 
 class RealArmIO(ArmIO):
     def __init__(self) -> None:
-        self.left_arm_motor = TalonSRX(21)
-        self.right_arm_motor = TalonSRX(22)
+        self.left_arm_motor = TalonSRX(5)
+        self.right_arm_motor = TalonSRX(6)
 
         self.right_arm_motor.setInverted(True)
 
@@ -92,9 +95,49 @@ class RealArmIO(ArmIO):
         pass
 
 
-class SimArmIO:
-    pass
+class SimArmIO(ArmIO):
+    def __init__(self) -> None:
+        self.voltage = 0.0
+
+        self.arm_sim = SingleJointedArmSim(
+            gearbox=DCMotor.CIM(2),
+            gearing=ArmConst.GEAR_RATIO,
+            moi=ArmConst.MOI,
+            armLength=ArmConst.LENGTH,
+            minAngle=ArmConst.SIM_MIN_ANGLE,
+            maxAngle=ArmConst.SIM_MAX_ANGLE,
+            simulateGravity=True,
+            startingAngle=ArmConst.SIM_MIN_ANGLE
+        )
+
+    def get_voltage(self) -> volts:
+        return self.voltage
+
+    def get_angle(self) -> radians:
+        return self.arm_sim.getAngle()
+
+    def get_velocity(self) -> radians_per_second:
+        return self.arm_sim.getVelocity()
+    
+    def command_voltage(self, volts: volts) -> None:
+        self.voltage = volts
+
+    def update(self) -> None:
+        self.arm_sim.setInputVoltage(self.voltage)
+        self.arm_sim.update(RobotConst.LOOP_DT)
 
 
 class FakeArmIO:
-    pass
+    def __init__(self) -> None:
+        self.voltage = 0.0
+        self.angle = 0.0
+        self.velocity = 0.0
+
+    def get_voltage(self) -> volts:
+        return self.voltage
+
+    def get_angle(self) -> radians:
+        return self.angle
+
+    def get_velocity(self) -> radians_per_second:
+        return self.voltage

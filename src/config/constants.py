@@ -76,6 +76,8 @@ class ArmConst:
     # Simulation constants (unitless, all in terms of the GUI)
     SIM_HEIGHT = 50.0
     SIM_WIDTH = 20.0
+    SIM_MIN_ANGLE: radians = 0.0
+    SIM_MAX_ANGLE: radians = 2 * math.pi
     ROOT_LENGTH = 10.0
     ROOT_ANGLE = 0.0
     ROOT_X = 10.0

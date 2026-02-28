@@ -21,6 +21,8 @@ class DrivetrainControl(AdaptiveComponent):
 
         self.controller = controller
 
+        self.drive_percent = self.tunable("Tunables/DrivePCT", 0.8)
+
     def execute(self) -> None:
         """
         Declare when the drivetrain should move based on user input.
@@ -29,8 +31,8 @@ class DrivetrainControl(AdaptiveComponent):
         if not DriverStation.isTeleopEnabled():
             return
         
-        forward_speed_pct = -self.controller.getY()
-        angular_speed_pct = self.controller.getX()
+        forward_speed_pct = -self.controller.getY() * self.drive_percent.value
+        angular_speed_pct = -self.controller.getX() * self.drive_percent.value
         
         self.drivetrain.request_linear_percent(forward_speed_pct, DrivetrainPriority.TELEOP, "teleop")
         self.drivetrain.request_angular_percent(angular_speed_pct, DrivetrainPriority.TELEOP, "teleop")
