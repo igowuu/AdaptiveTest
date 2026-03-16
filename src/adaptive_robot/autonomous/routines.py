@@ -1,8 +1,12 @@
-from abc import ABC, abstractmethod 
+from abc import ABC, abstractmethod
 from enum import Enum, auto
+from typing import final
 
 
 class ActionState(Enum):
+    """
+    Represents the lifecycle state of an action.
+    """
     READY = auto()
     RUNNING = auto()
     FINISHED = auto()
@@ -11,218 +15,185 @@ class ActionState(Enum):
 
 class Action(ABC):
     """
-    Represents a single autonomous action that contains the required lifecycle methods.
+    Represents a single action for autonomous.
+    An action manages its own state and determines when it is finished.
     """
-    @abstractmethod
-    def start(self) -> None:
-        """
-        Starts and initializes an action.
-        """
-        pass
+    def __init__(self) -> None:
+        self._state = ActionState.READY
 
-    @abstractmethod
-    def update(self) -> None:
+    @final
+    def set_running(self) -> None:
         """
-        Updates the action each iteration.
+        Sets the current state to running.
         """
-        pass
+        self._state = ActionState.RUNNING
 
-    @abstractmethod
-    def end(self) -> None:
+    @final
+    def set_finished(self) -> None:
         """
-        Ends the action once it naturally finishes.
+        Sets the current state to finished if previously running.
         """
-        pass
+        if self._state == ActionState.RUNNING:
+            self._state = ActionState.FINISHED
+        else:
+            raise RuntimeError("Attempted to set an action to a finished state that was not running.")
     
-    def cancel(self) -> None:
+    @final
+    def set_canceled(self) -> None:
         """
-        Immediately terminates the execution of an action once called.
+        Sets the current state to finished if previously running.
         """
-        ...
+        if self._state == ActionState.RUNNING:
+            self._state = ActionState.CANCELED
+        else:
+            raise RuntimeError("Attempted to set an action to a canceled state that was not running.")
 
-    def reset(self) -> None:
-        """
-        Resets the action so it can be run again.
-        """
-        ...
-
-    def get_state(self) -> ActionState:
-        """
-        Returns the currently active state type.
-        """
-        ...
-
+    @final
     @property
-    @abstractmethod
+    def state(self) -> ActionState:
+        """
+        Returns the current state of this action.
+        """
+        return self._state
+
+    @final
+    @property
     def is_finished(self) -> bool:
         """
-        Returns True if the action is complete.
+        Returns True if the action is no longer running.
         """
+        return self._state in (ActionState.FINISHED, ActionState.CANCELED)
+
+    @final
+    def start(self) -> None:
+        """
+        Initializes and starts the action.
+        Called once when the action begins execution.
+        """
+        if self._state != ActionState.READY:
+            raise RuntimeError("Attempted to start an autonomous action that was not ready.")
+
+        self.set_running()
+        should_finish = self.on_start()
+
+        if should_finish:
+            self.set_finished()
+            self.on_finish()
+
+    @final
+    def update(self) -> None:
+        """
+        Executes one iteration of the action.
+        Called repeatedly until the action finishes.
+        """
+        if self._state != ActionState.RUNNING:
+            raise RuntimeError("Attempted to update an autonomous action that was not running.")
+
+        should_finish = self.on_update()
+
+        if should_finish:
+            self.set_finished()
+            self.on_finish()
+
+    @final
+    def cancel(self) -> None:
+        """
+        Immediately terminates the action.
+        Called when the action needs to stop before completion.
+        """
+        if self._state != ActionState.RUNNING:
+            raise RuntimeError("Attempted to cancel an autonomous action that was not running.")
+
+        self.on_cancel()
+        self.set_canceled()
+
+    @abstractmethod
+    def on_start(self) -> bool:
+        pass
+
+    @abstractmethod
+    def on_update(self) -> bool:
+        pass
+
+    @abstractmethod
+    def on_cancel(self) -> None:
+        pass
+
+    @abstractmethod
+    def on_finish(self) -> None:
         pass
 
 
 class SequentialAction(Action):
-    """
-    Initializes a sequential action, where each action waits for the previous to end before executing.
-    """
     def __init__(self, actions: list[Action]) -> None:
-        """
-        Given a list of actions, initializes a sequential action.
-        Each action will be executed in ascending order in the list.
-        """
+        super().__init__()
+
         self._actions = actions
         self._current_index = 0
-        self._state = ActionState.READY
 
-    def start(self) -> None:
+    def _start_current_action(self) -> None:
         """
-        Starts the first action in the provided list.
+        Starts the current action if it is ready.
         """
-        if not self._state == ActionState.READY:
-            return
-
-        self._current_index = 0
-        if self._actions:
-            self._actions[0].start()
-
-        self._state = ActionState.RUNNING
-
-    def update(self) -> None:
-        """
-        Updates the action each iteration if not all actions have been completed.
-        If the currently running action has ended, progresses to the next action.
-        """
-        if not self._state == ActionState.RUNNING:
-            return
-
         if self._current_index >= len(self._actions):
             return
 
         current_action = self._actions[self._current_index]
-        current_action.update()
+        if current_action.state == ActionState.READY:
+            current_action.start()
+
+    def on_start(self) -> bool:
+        """
+        Starts the first action in the provided list.
+        Returns if the action should be terminated upon an empty list.
+        """
+        if not self._actions:
+            return True
+
+        self._start_current_action()
+        current_action = self._actions[self._current_index]
 
         if current_action.is_finished:
-            current_action.end()
             self._current_index += 1
-            if self._current_index < len(self._actions):
-                self._actions[self._current_index].start()
+            if self._current_index >= len(self._actions):
+                return True
+            self._start_current_action()
 
-    def end(self) -> None:
+        return False
+    
+    def on_update(self) -> bool:
         """
-        Stops the current action if still running.
+        Updates the current action each iteration.
+        If the current action finishes this iteration, progresses to the next action.
+        If all actions have been completed, sets the SequentialAction to finished.
         """
-        if not self._state == ActionState.RUNNING:
-            return
+        if self._current_index >= len(self._actions):
+            return True
 
+        current_action = self._actions[self._current_index]
+        if current_action.state == ActionState.READY:
+            current_action.start()
+
+        if current_action.state == ActionState.RUNNING:
+            current_action.update()
+
+        if current_action.is_finished:
+            self._current_index += 1
+            if self._current_index >= len(self._actions):
+                return True
+
+            self._start_current_action()
+
+        return False
+
+    def on_cancel(self) -> None:
+        """
+        Cancels both the current action and the SequentialAction.
+        """
         if self._current_index < len(self._actions):
-            self._actions[self._current_index].end()
+            current_action = self._actions[self._current_index]
+            if current_action.state == ActionState.RUNNING:
+                current_action.cancel()
 
-        self._state = ActionState.FINISHED
-
-    def cancel(self) -> None:
-        if self._state == ActionState.RUNNING:
-            for action in self._actions:
-                if action.get_state() == ActionState.RUNNING:
-                    action.cancel()
-            self._state = ActionState.CANCELED
-            self.end()
-
-    def reset(self) -> None:
-        if self._state in (ActionState.FINISHED, ActionState.CANCELED):
-            self._state = ActionState.READY
-            self._current_index = 0
-            for action in self._actions:
-                action.reset()
-
-    def get_state(self) -> ActionState:
-        return self._state
-
-    @property
-    def is_finished(self) -> bool:
-        """
-        Returns True if all actions have been completed.
-        """
-        return self._state in (ActionState.FINISHED, ActionState.CANCELED)
-
-
-class ParallelAction(Action):
-    """
-    Initializes a parallel action, where each action runs at the same time.
-    The action will end once all actions have finished.
-    """
-    def __init__(self, actions: list[Action]) -> None:
-        """
-        Given a list of actions, initializes a parallel action.
-        """
-        self._actions = actions
-        self._active_actions: list[Action] = []
-        self._state = ActionState.READY
-
-    def start(self) -> None:
-        """
-        Calls the start method for all actions.
-        """
-        if not self._state == ActionState.READY:
-            return
-
-        self._active_actions = list(self._actions)
-        for action in self._active_actions:
-            action.start()
-
-        self._state = ActionState.RUNNING
-
-    def update(self) -> None:
-        """
-        Updates all actions that haven't finished.
-        """
-        if not self._state == ActionState.RUNNING:
-            return
-
-        still_active: list[Action] = []
-
-        for action in self._active_actions:
-            action.update()
-            if action.is_finished:
-                action.end()
-            else:
-                still_active.append(action)
-
-        self._active_actions = still_active
-
-    def end(self) -> None:
-        """
-        Stops all running actions.
-        """
-        if not self._state == ActionState.RUNNING:
-            return
-
-        for action in self._active_actions:
-            action.end()
-        self._active_actions.clear()
-
-        self._state = ActionState.FINISHED
-
-    def cancel(self) -> None:
-        if self._state == ActionState.RUNNING:
-            for action in self._actions:
-                if action.get_state() == ActionState.RUNNING:
-                    action.cancel()
-            self._state = ActionState.CANCELED
-            self.end()
-
-    def reset(self) -> None:
-        if self._state in (ActionState.FINISHED, ActionState.CANCELED):
-            self._state = ActionState.READY
-            self._active_actions.clear()
-            for action in self._actions:
-                action.reset()
-
-    def get_state(self) -> ActionState:
-        return self._state
-
-    @property
-    def is_finished(self) -> bool:
-        """
-        Returns True if there are no more active actions.
-        """
-        return self._state in (ActionState.FINISHED, ActionState.CANCELED)
+    def on_finish(self) -> None:
+        pass

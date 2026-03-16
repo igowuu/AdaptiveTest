@@ -40,9 +40,8 @@ class TelemetryPublisher:
     
     def put_value(self, key: str, value: primitive_type) -> None:
         """
-        Publishes a value to NetworkTables under the given key. 
-        Keys can specify folders via foward slashes. 
-        For example, a key within the Drivetrain folder could be Drivetrain/FLMotor.
+        Puts a value to a NT instance if it has changed.
+        If it has not changed, returns without doing anything (the value is the same).
         """
         # Only update networktables if values change
         if key in self._last_values and self._last_values[key] == value:
@@ -57,8 +56,7 @@ class TelemetryPublisher:
 
     def get_value(self, key: str) -> Optional[primitive_type]:
         """
-        Returns the value found at the specified key, or the cached value if it 
-        has not changed in NetworkTables. 
+        Returns the value found at the specified key.
         If the value under the key is not found in Networktables, returns None.
         """
         entry = self.nt.getEntry(key)

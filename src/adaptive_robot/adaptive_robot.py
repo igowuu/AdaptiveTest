@@ -9,7 +9,7 @@ from typing import final
 
 from wpilib import TimedRobot
 
-from adaptive_robot.telemetry import TelemetryPublisher
+from adaptive_robot.telemetry.telemetry import TelemetryPublisher
 from adaptive_robot.adaptive_component import AdaptiveComponent
 
 

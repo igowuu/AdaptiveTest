@@ -12,7 +12,7 @@ from subsystems.drivetrain.drivetrain import Drivetrain, DriveMode
 from config.constants import RobotConst
 
 
-class TestDrivetrainSimIO:
+class TestDrivetrainFakeIO:
     def setup_method(self) -> None:
         self.io = FakeDrivetrainIO()
 

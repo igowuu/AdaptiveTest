@@ -55,6 +55,9 @@ class ArmIO(ABC):
 
 
 class RealArmIO(ArmIO):
+    """
+    Represents a real arm IO for actual hardware.
+    """
     def __init__(self) -> None:
         self.left_arm_motor = TalonSRX(5)
         self.right_arm_motor = TalonSRX(6)
@@ -96,6 +99,9 @@ class RealArmIO(ArmIO):
 
 
 class SimArmIO(ArmIO):
+    """
+    Represents a simulated arm IO without real hardware.
+    """
     def __init__(self) -> None:
         self.voltage = 0.0
 
@@ -127,7 +133,10 @@ class SimArmIO(ArmIO):
         self.arm_sim.update(RobotConst.LOOP_DT)
 
 
-class FakeArmIO:
+class FakeArmIO(ArmIO):
+    """
+    Represents an arm IO with completely dummy values for unit tests.
+    """
     def __init__(self) -> None:
         self.voltage = 0.0
         self.angle = 0.0
@@ -140,4 +149,10 @@ class FakeArmIO:
         return self.angle
 
     def get_velocity(self) -> radians_per_second:
-        return self.voltage
+        return self.velocity
+    
+    def command_voltage(self, volts: volts) -> None:
+        self.voltage = volts
+
+    def update(self) -> None:
+        pass

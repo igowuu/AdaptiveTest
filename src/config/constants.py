@@ -102,6 +102,6 @@ class ArmPositionPID:
 class ArmFF:
     # Arm FF (estimates)
     KS: volts = 0.50
-    KG: volts = 0.0
+    KG: volts = 4.1
     KV: volt_seconds_per_meter = 2.60
     KA: volt_seconds_squared_per_meter = 0.05

@@ -4,7 +4,7 @@ import logging
 
 from adaptive_robot.tunable.tunable_value import TunableValue, TunableType
 from adaptive_robot.tunable.tunable_pid_controller import TunablePIDController
-from adaptive_robot.telemetry import primitive_type
+from adaptive_robot.telemetry.telemetry import primitive_type
 
 if TYPE_CHECKING:
     from adaptive_robot.adaptive_robot import AdaptiveRobot
