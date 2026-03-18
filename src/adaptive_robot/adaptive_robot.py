@@ -10,6 +10,7 @@ from typing import final
 from wpilib import TimedRobot
 
 from adaptive_robot.telemetry.telemetry import TelemetryPublisher
+from adaptive_robot.telemetry.struct_telemetry import TelemetryStructPublisher
 from adaptive_robot.adaptive_component import AdaptiveComponent
 
 
@@ -21,6 +22,7 @@ class AdaptiveRobot(TimedRobot):
     def __init__(self) -> None:
         super().__init__()
         self.telemetry_publisher = TelemetryPublisher()
+        self.telemetry_struct_publisher = TelemetryStructPublisher()
         self.components: list["AdaptiveComponent"] = []
 
     @final

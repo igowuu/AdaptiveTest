@@ -148,9 +148,19 @@ class AdaptiveComponent(ABC):
         Publishes an immutable value to networktables.
         
         :param directory: The directory that the value will be saved under in NetworkTables.
-        :param value: The value you wish to save publish to NetworkTables.
+        :param value: The value you wish to publish to NetworkTables.
         """
         self._robot.telemetry_publisher.put_value(directory, value)
+    
+    @final
+    def publish_struct_value(self, directory: str, value: object) -> None:
+        """
+        Publishes a WPIStruct (Pose3d, Field3d, etc) to networktables.
+
+        :param directory: The directory that the value will be saved under in NetworkTables.
+        :param value: The value you wish to publish to networktables. If not a WPIStruct, raises an error.
+        """
+        self._robot.telemetry_struct_publisher.put_struct_value(directory, value)
     
     def on_faulted(self) -> None:
         """

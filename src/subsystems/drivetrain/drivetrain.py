@@ -3,7 +3,7 @@ from enum import Enum, auto
 from wpilib import Field2d, SmartDashboard
 
 from wpimath.units import percent, meters_per_second
-from wpimath.geometry import Pose2d
+from wpimath.geometry import Pose2d, Pose3d
 from wpimath.kinematics import DifferentialDriveKinematics, DifferentialDriveOdometry, ChassisSpeeds
 from wpimath.controller import SimpleMotorFeedforwardMeters
 from wpimath.filter import SlewRateLimiter
@@ -63,13 +63,12 @@ class Drivetrain(AdaptiveComponent):
             rightDistance=self.io.get_right_distance()
         )
 
-        self.left_voltage_slew = SlewRateLimiter(DrivetrainConst.SLEW_LIMIT)
-        self.right_voltage_slew = SlewRateLimiter(DrivetrainConst.SLEW_LIMIT)
+        self.linear_velocity_slew = SlewRateLimiter(DrivetrainConst.LINEAR_SLEW_LIMIT)
 
         self.linear_percent_controller = AxisController()
         self.angular_percent_controller = AxisController()
 
-        self.drive_mode = DriveMode.OPEN_LOOP
+        self.drive_mode = DriveMode.CLOSED_LOOP
 
         self.field = Field2d()
         SmartDashboard.putData("Field", self.field)
@@ -159,14 +158,11 @@ class Drivetrain(AdaptiveComponent):
         clamped_left_voltage = clamp(left_voltage, -RobotConst.NOMINAL_VOLTAGE, RobotConst.NOMINAL_VOLTAGE)
         clamped_right_voltage = clamp(right_voltage, -RobotConst.NOMINAL_VOLTAGE, RobotConst.NOMINAL_VOLTAGE)
 
-        desired_left_volts = self.left_voltage_slew.calculate(clamped_left_voltage)
-        desired_right_volts = self.right_voltage_slew.calculate(clamped_right_voltage)
-
         self.previous_left_velocity = desired_left_velocity
         self.previous_right_velocity = desired_right_velocity
 
-        self.io.command_left_voltage(desired_left_volts)
-        self.io.command_right_voltage(desired_right_volts)
+        self.io.command_left_voltage(clamped_left_voltage)
+        self.io.command_right_voltage(clamped_right_voltage)
 
     def _drive_closed_loop(
         self,
@@ -216,9 +212,8 @@ class Drivetrain(AdaptiveComponent):
         self.publish_value("Drive/Sensors/LeftAppliedVoltage", self.io.get_left_voltage())
         self.publish_value("Drive/Sensors/RightAppliedVoltage", self.io.get_right_voltage())
 
-        self.publish_value("Drive/Odometry/X (meters)", self.get_pose().X())
-        self.publish_value("Drive/Odometry/Y (meters)", self.get_pose().Y())
-        self.publish_value("Drive/Odometry/Yaw (radians)", self.get_pose().rotation().radians())
+        self.publish_struct_value("Drive/Odometry", self.get_pose())
+        self.publish_struct_value("Dashboard/Odometry/Pose3d", Pose3d(self.get_pose()))
 
         self.publish_value("Drive/DriveAxis/ResolvedX (percent)", resolved_linear.value)
         self.publish_value("Drive/DriveAxis/ForwardMode", resolved_linear.source)
@@ -245,7 +240,17 @@ class Drivetrain(AdaptiveComponent):
         linear_velocity = resolved_linear * DrivetrainConst.MAX_SPEED_MPS
         angular_velocity = resolved_angular * DrivetrainConst.MAX_SPEED_RADPS
 
-        desired_chassis = ChassisSpeeds(linear_velocity, 0.0, angular_velocity)
+        # Only apply linear slew if open loop control is enabled.
+        if self.drive_mode == DriveMode.OPEN_LOOP:
+            slewed_linear_velocity = self.linear_velocity_slew.calculate(linear_velocity)
+
+            desired_chassis = desired_chassis = ChassisSpeeds(
+                vx=slewed_linear_velocity, 
+                vy=0.0, 
+                omega=angular_velocity
+            )
+        else:
+            desired_chassis = ChassisSpeeds(linear_velocity, 0.0, angular_velocity)
 
         wheel_speeds = self.kinematics.toWheelSpeeds(desired_chassis)
         wheel_speeds.desaturate(DrivetrainConst.MAX_SPEED_MPS)

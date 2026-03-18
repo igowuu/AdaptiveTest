@@ -35,7 +35,8 @@ class DrivetrainConst:
 
     MOI: kilogram_square_meters = 6.0
 
-    SLEW_LIMIT: volts = 36
+    LINEAR_SLEW_LIMIT: meters_per_second = 7.5
+    ANGULAR_SLEW_LIMIT: radians_per_second = float('inf')
 
     SRX_CONTINUOUS_AMPERE_LIMIT = 32
     SRX_PEAK_AMPERE_LIMIT = 45

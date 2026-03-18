@@ -24,34 +24,39 @@ class TelemetryStructPublisher:
     def __init__(self) -> None:
         self._entries: dict[str, StructEntry] = {}
 
-    def put_struct_value(self, key: str, struct_type: type, value: Any) -> None:
+    def put_struct_value(self, directory: str, value: object) -> None:
         """
         Publishes a WPILib struct-compatible value to NetworkTables.
 
-        :param key: NetworkTables entry key (path). Use forward slashes for folders.
-        :param struct_type: The struct type class (e.g., Pose3d, Pose2d).
-        :param value: The struct instance to publish.
+        :param directory: NetworkTables entry key (path). Use forward slashes for folders.
+        :param value: The struct instance to publish (i.e. Pose3d(3, 4, 5)).
         """
         try:
-            if key not in self._entries:
+            if directory not in self._entries:
+                value_type = type(value)
                 publisher = NetworkTableInstance.getDefault() \
-                    .getStructTopic(key, struct_type) \
+                    .getStructTopic("Dashboard/" + directory, value_type) \
                     .publish()
-                subscriber = publisher.getTopic().subscribe(struct_type())
-                self._entries[key] = StructEntry(publisher, subscriber, struct_type())
+                subscriber = publisher.getTopic().subscribe(value_type())
+                self._entries[directory] = StructEntry(publisher, subscriber, value)
 
-            entry = self._entries[key]
-
-            # Only publish if value has changed
-            if entry.cached_value != value:
-                entry.publisher.set(value)
-                entry.cached_value = value
+                # Set value immediately on first iteration 
+                publisher.set(value)
+            else:
+                entry = self._entries[directory]
+                # Only publish if value has changed
+                if entry.cached_value != value:
+                    entry.publisher.set(value)
+                    entry.cached_value = value
 
         except Exception as e:
             wpilib.reportError(
-                error=f"Struct publish failed for key='{key}': {e}",
+                error=f"Struct publish failed for directory='{directory}': {e}",
                 printTrace=False
             )
 
     def get_struct_value(self, key: str) -> Optional[Any]:
-        if 
+        """
+        Returns the value in networktables for a given struct key.
+        """
+        return self._entries[key].subscriber.get()
